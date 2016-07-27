@@ -1,0 +1,82 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="DiffFilter" group="filters">
+    <SourceProxy name="DiffFilter" class="vtkPythonProgrammableFilter" label="Field Difference">
+
+      <Documentation
+        long_help="Compute difference of two fields on two arbitrary grids."
+        short_help="Compute difference of two fields on two arbitrary grids.">
+      </Documentation>
+
+
+      <InputProperty
+        name="Input"
+                    clean_command="RemoveAllInputs"
+            command="AddInputConnection"
+            multiple_input="1">
+          <ProxyGroupDomain name="groups">
+            <Group name="sources"/>
+            <Group name="filters"/>
+          </ProxyGroupDomain>
+
+          <DataTypeDomain name="input_type">
+            <DataType value="vtkDataSet"/>
+          </DataTypeDomain>
+      </InputProperty>
+
+
+      <StringVectorProperty
+        name="field1"
+        label="field1"
+        initial_string="field1"
+        command="SetParameter"
+        animateable="1"
+        default_values=""
+        number_of_elements="1">
+        <Documentation></Documentation>
+      </StringVectorProperty>
+
+
+      <StringVectorProperty
+        name="field2"
+        label="field2"
+        initial_string="field2"
+        command="SetParameter"
+        animateable="1"
+        default_values=""
+        number_of_elements="1">
+        <Documentation></Documentation>
+      </StringVectorProperty>
+
+
+
+
+      <!-- Output data type: "vtkPolyData" -->
+      <IntVectorProperty command="SetOutputDataSetType"
+                         default_values="0"
+                         name="OutputDataSetType"
+                         number_of_elements="1"
+                         panel_visibility="never">
+        <Documentation>The value of this property determines the dataset type
+        for the output of the programmable filter.</Documentation>
+      </IntVectorProperty>
+
+
+      <StringVectorProperty
+        name="Script"
+        command="SetScript"
+        number_of_elements="1"
+        default_values="def get_property(field_data, name):&#xA;    num_props = field_data.GetNumberOfArrays()&#xA;    for i in range(num_props):&#xA;        if field_data.GetArray(i).GetName() == name:&#xA;            return i&#xA;    return -1&#xA;&#xA;def get_output(probeFilter, source_data, sampling_points, field, field_out):&#xA;    data_pd = source_data.GetPointData()&#xA;    prop_idx = get_property(data_pd, field)&#xA;    assert prop_idx != -1&#xA;&#xA;    probeFilter.SetSourceData(source_data)&#xA;    probeFilter.SetInputData(sampling_points)&#xA;    probeFilter.Update()&#xA;&#xA;    data1_interpolated = probeFilter.GetOutput()&#xA;    prop_array = data1_interpolated.GetPointData().GetArray(prop_idx)&#xA;    prop_num_comp = prop_array.GetNumberOfComponents()&#xA;&#xA;    out_data = vtk.vtkDoubleArray()&#xA;    out_data.SetName(field_out)&#xA;    out_data.SetNumberOfComponents(1)&#xA;    out_data.SetNumberOfTuples(len(all_points))&#xA;&#xA;    fh.write(&quot;all: &quot; + str(probeFilter.GetOutput().GetNumberOfPoints()) + &quot;\n&quot;)&#xA;    fh.write(&quot;valid: &quot; + str(probeFilter.GetValidPoints().GetNumberOfTuples()) + &quot;\n&quot;)&#xA;    fh.write(&quot;valid points mask: &quot; + probeFilter.GetValidPointMaskArrayName() + &quot;\n&quot;)&#xA;&#xA;    # assert probeFilter.GetOutput().GetNumberOfPoints() == len(all_points)&#xA;    num_points = probeFilter.GetOutput().GetNumberOfPoints()&#xA;&#xA;    if num_points == probeFilter.GetValidPoints().GetNumberOfTuples():&#xA;        for i in range(num_points):&#xA;            out_data.SetTuple(i, i, prop_array)&#xA;    else:&#xA;        valid_id = 0&#xA;        valid_ids = probeFilter.GetValidPoints()&#xA;        NaNs = (NaN,) * prop_num_comp&#xA;        for i in range(len(all_points)):&#xA;            if valid_ids.GetTuple1(valid_id) == i:&#xA;                valid_id += 1&#xA;                out_data.SetTuple(i, i, prop_array)&#xA;            else:&#xA;                out_data.SetTuple(i, NaNs)&#xA;&#xA;    return out_data&#xA;&#xA;NaN = float(&quot;NaN&quot;)&#xA;&#xA;with open(&quot;/tmp/pv.log&quot;, &quot;w&quot;) as fh:&#xA;    assert self.GetNumberOfInputPorts() == 1&#xA;    assert self.GetNumberOfInputConnections(0) == 2&#xA;&#xA;    data1 = self.GetInputDataObject(0, 0)&#xA;    data2 = self.GetInputDataObject(0, 1)&#xA;&#xA;    points1 = data1.GetPoints()&#xA;    npoints1 = data1.GetNumberOfPoints()&#xA;&#xA;    points2 = data2.GetPoints()&#xA;    npoints2 = data2.GetNumberOfPoints()&#xA;&#xA;    all_points = [ points1.GetPoint(i) for i in range(npoints1) ]&#xA;    all_points += [ points2.GetPoint(i) for i in range(npoints2) ]&#xA;&#xA;    # make unique&#xA;    all_points = set(all_points)&#xA;&#xA;    all_points_new = vtk.vtkPoints()&#xA;    for i, p in enumerate(all_points):&#xA;        all_points_new.InsertPoint(i, p[0], p[1], p[2])&#xA;&#xA;    output = self.GetPolyDataOutput()&#xA;    output.SetPoints(all_points_new)&#xA;&#xA;    probeFilter = vtk.vtkProbeFilter()&#xA;&#xA;    # interpolate data1&#xA;    out_data1 = get_output(probeFilter, data1, output, field1, field1+&quot;_1&quot;)&#xA;    output.GetPointData().AddArray(out_data1)&#xA;&#xA;    # interpolate data2&#xA;    out_data2 = get_output(probeFilter, data2, output, field2, field2+&quot;_2&quot;)&#xA;    output.GetPointData().AddArray(out_data2)&#xA;&#xA;    assert out_data1.GetNumberOfComponents() == out_data2.GetNumberOfComponents()&#xA;&#xA;    out_data_diff = vtk.vtkDoubleArray()&#xA;    out_data_diff.SetName(&quot;{}_1_minus_{}_2&quot;.format(field1, field2))&#xA;    out_data_diff.SetNumberOfComponents(out_data1.GetNumberOfComponents())&#xA;    out_data_diff.SetNumberOfTuples(len(all_points))&#xA;&#xA;    for i in range(len(all_points)):&#xA;        tup1 = out_data1.GetTuple(i)&#xA;        tup2 = out_data2.GetTuple(i)&#xA;        tup_diff = tuple(v1 - v2 for v1, v2 in zip(tup1, tup2))&#xA;&#xA;        out_data_diff.SetTuple(i, tup_diff)&#xA;&#xA;    output.GetPointData().AddArray(out_data_diff)&#xA;"
+        panel_visibility="advanced">
+        <Hints>
+         <Widget type="multi_line"/>
+       </Hints>
+      <Documentation>This property contains the text of a python program that
+      the programmable source runs.</Documentation>
+      </StringVectorProperty>
+
+
+
+    </SourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
+
