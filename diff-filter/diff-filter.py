@@ -113,18 +113,12 @@ def RequestData():
         data1_interpolated = probeFilter.GetOutput()
         prop_array = data1_interpolated.GetPointData().GetArray(prop_idx)
         prop_num_comp = prop_array.GetNumberOfComponents()
+        num_points = probeFilter.GetOutput().GetNumberOfPoints()
 
         out_data = vtk.vtkDoubleArray()
         out_data.SetName(field_out)
         out_data.SetNumberOfComponents(1)
-        out_data.SetNumberOfTuples(len(all_points))
-
-        fh.write("all: " + str(probeFilter.GetOutput().GetNumberOfPoints()) + "\n")
-        fh.write("valid: " + str(probeFilter.GetValidPoints().GetNumberOfTuples()) + "\n")
-        fh.write("valid points mask: " + probeFilter.GetValidPointMaskArrayName() + "\n")
-
-        # assert probeFilter.GetOutput().GetNumberOfPoints() == len(all_points)
-        num_points = probeFilter.GetOutput().GetNumberOfPoints()
+        out_data.SetNumberOfTuples(num_points)
 
         if num_points == probeFilter.GetValidPoints().GetNumberOfTuples():
             for i in range(num_points):
@@ -133,7 +127,7 @@ def RequestData():
             valid_id = 0
             valid_ids = probeFilter.GetValidPoints()
             NaNs = (NaN,) * prop_num_comp
-            for i in range(len(all_points)):
+            for i in range(num_points):
                 if valid_ids.GetTuple1(valid_id) == i:
                     valid_id += 1
                     out_data.SetTuple(i, i, prop_array)
@@ -144,55 +138,54 @@ def RequestData():
 
     NaN = float("NaN")
 
-    with open("/tmp/pv.log", "w") as fh:
-        assert self.GetNumberOfInputPorts() == 1
-        assert self.GetNumberOfInputConnections(0) == 2
+    assert self.GetNumberOfInputPorts() == 1
+    assert self.GetNumberOfInputConnections(0) == 2
 
-        data1 = self.GetInputDataObject(0, 0)
-        data2 = self.GetInputDataObject(0, 1)
+    data1 = self.GetInputDataObject(0, 0)
+    data2 = self.GetInputDataObject(0, 1)
 
-        points1 = data1.GetPoints()
-        npoints1 = data1.GetNumberOfPoints()
+    points1 = data1.GetPoints()
+    npoints1 = data1.GetNumberOfPoints()
 
-        points2 = data2.GetPoints()
-        npoints2 = data2.GetNumberOfPoints()
+    points2 = data2.GetPoints()
+    npoints2 = data2.GetNumberOfPoints()
 
-        all_points = [ points1.GetPoint(i) for i in range(npoints1) ]
-        all_points += [ points2.GetPoint(i) for i in range(npoints2) ]
+    all_points = [ points1.GetPoint(i) for i in range(npoints1) ]
+    all_points += [ points2.GetPoint(i) for i in range(npoints2) ]
 
-        # make unique
-        all_points = set(all_points)
+    # make unique
+    all_points = set(all_points)
 
-        all_points_new = vtk.vtkPoints()
-        for i, p in enumerate(all_points):
-            all_points_new.InsertPoint(i, p[0], p[1], p[2])
+    all_points_new = vtk.vtkPoints()
+    for i, p in enumerate(all_points):
+        all_points_new.InsertPoint(i, p[0], p[1], p[2])
 
-        output = self.GetPolyDataOutput()
-        output.SetPoints(all_points_new)
+    output = self.GetPolyDataOutput()
+    output.SetPoints(all_points_new)
 
-        probeFilter = vtk.vtkProbeFilter()
+    probeFilter = vtk.vtkProbeFilter()
 
-        # interpolate data1
-        out_data1 = get_output(probeFilter, data1, output, field1, field1+"_1")
-        output.GetPointData().AddArray(out_data1)
+    # interpolate data1
+    out_data1 = get_output(probeFilter, data1, output, field1, field1+"_1")
+    output.GetPointData().AddArray(out_data1)
 
-        # interpolate data2
-        out_data2 = get_output(probeFilter, data2, output, field2, field2+"_2")
-        output.GetPointData().AddArray(out_data2)
+    # interpolate data2
+    out_data2 = get_output(probeFilter, data2, output, field2, field2+"_2")
+    output.GetPointData().AddArray(out_data2)
 
-        assert out_data1.GetNumberOfComponents() == out_data2.GetNumberOfComponents()
+    assert out_data1.GetNumberOfComponents() == out_data2.GetNumberOfComponents()
 
-        out_data_diff = vtk.vtkDoubleArray()
-        out_data_diff.SetName("{}_1_minus_{}_2".format(field1, field2))
-        out_data_diff.SetNumberOfComponents(out_data1.GetNumberOfComponents())
-        out_data_diff.SetNumberOfTuples(len(all_points))
+    out_data_diff = vtk.vtkDoubleArray()
+    out_data_diff.SetName("{}_1_minus_{}_2".format(field1, field2))
+    out_data_diff.SetNumberOfComponents(out_data1.GetNumberOfComponents())
+    out_data_diff.SetNumberOfTuples(len(all_points))
 
-        for i in range(len(all_points)):
-            tup1 = out_data1.GetTuple(i)
-            tup2 = out_data2.GetTuple(i)
-            tup_diff = tuple(v1 - v2 for v1, v2 in zip(tup1, tup2))
+    for i in range(len(all_points)):
+        tup1 = out_data1.GetTuple(i)
+        tup2 = out_data2.GetTuple(i)
+        tup_diff = tuple(v1 - v2 for v1, v2 in zip(tup1, tup2))
 
-            out_data_diff.SetTuple(i, tup_diff)
+        out_data_diff.SetTuple(i, tup_diff)
 
-        output.GetPointData().AddArray(out_data_diff)
+    output.GetPointData().AddArray(out_data_diff)
 
