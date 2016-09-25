@@ -1,0 +1,95 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="ExtractComponentsFilter" group="filters">
+    <SourceProxy name="ExtractComponentsFilter" class="vtkPythonProgrammableFilter" label="Extract Vector Components">
+
+      <Documentation
+        long_help="Extract components of a vector property into a new vector property"
+        short_help="Extract components of a vector property into a new vector property">
+      </Documentation>
+
+
+      <InputProperty
+        name="Input"
+        command="SetInputConnection">
+          <ProxyGroupDomain name="groups">
+            <Group name="sources"/>
+            <Group name="filters"/>
+          </ProxyGroupDomain>
+
+          <DataTypeDomain name="input_type">
+            <DataType value="vtkDataSet"/>
+          </DataTypeDomain>
+      </InputProperty>
+
+
+      <IntVectorProperty
+        name="Output_Components"
+        label="Output Components"
+        initial_string="Output_Components"
+        command="SetParameter"
+        animateable="1"
+        default_values="0 1 -1"
+        number_of_elements="3">
+        <Documentation></Documentation>
+      </IntVectorProperty>
+
+
+<StringVectorProperty name="inputField"
+                      label="Input Field"
+                      initial_string="inputField"
+                      command="AddParameter"
+                      clean_command="ClearParameter"
+                      number_of_elements="1"
+                      number_of_elements_per_command="1" repeat_command="1">
+  <ArrayListDomain name="array_list"
+                   attribute_type="Scalars"
+                   input_domain_name="inputs_array">
+    <RequiredProperties>
+      <Property name="Input" function="Input" />
+    </RequiredProperties>
+  </ArrayListDomain>
+</StringVectorProperty>
+
+<StringVectorProperty
+    name="output_field"
+    label="Output Field"
+    initial_string="output_field"
+    command="SetParameter"
+    animateable="1"
+    default_values=""
+    number_of_elements="1">
+    <Documentation></Documentation>
+</StringVectorProperty>
+
+
+
+      <!-- Output data type: "vtkUnstructuredGrid" -->
+      <IntVectorProperty command="SetOutputDataSetType"
+                         default_values="4"
+                         name="OutputDataSetType"
+                         number_of_elements="1"
+                         panel_visibility="never">
+        <Documentation>The value of this property determines the dataset type
+        for the output of the programmable filter.</Documentation>
+      </IntVectorProperty>
+
+
+      <StringVectorProperty
+        name="Script"
+        command="SetScript"
+        number_of_elements="1"
+        default_values="def get_property(field_data, name):&#xA;    num_props = field_data.GetNumberOfArrays()&#xA;    for i in range(num_props):&#xA;        if field_data.GetArray(i).GetName() == name:&#xA;            return i&#xA;    return -1&#xA;&#xA;if len(inputField) != 1:&#xA;    print(&quot;Only one input field is allowed!&quot;)&#xA;    assert False&#xA;inputField = inputField[0]&#xA;&#xA;if not output_field:&#xA;    print(&quot;Output field is empty.&quot;)&#xA;    assert False&#xA;&#xA;in_data = self.GetInputDataObject(0, 0)&#xA;npoints = in_data.GetNumberOfPoints()&#xA;&#xA;out_idcs = []&#xA;max_idx = -1&#xA;stop_here = False&#xA;for idx in Output_Components:&#xA;    if stop_here and idx != -1:&#xA;        print(&quot;Index != -1 seen after index of -1.&quot;)&#xA;        assert False&#xA;    elif idx == -1:&#xA;        stop_here = True&#xA;    else:&#xA;        if idx &lt; 0 or idx &gt;= 3:&#xA;            print(&quot;Index out of range!&quot;)&#xA;            assert False&#xA;        out_idcs.append(idx)&#xA;        if idx &gt; max_idx:&#xA;            max_idx = idx&#xA;&#xA;if max_idx == -1:&#xA;    print(&quot;No component selected for output&quot;)&#xA;    assert False&#xA;&#xA;prop_idx = get_property(in_data.GetPointData(), inputField)&#xA;if prop_idx == -1:&#xA;    print(&quot;Input field not found in point data&quot;)&#xA;    assert False&#xA;&#xA;in_array = in_data.GetPointData().GetArray(prop_idx)&#xA;&#xA;if max_idx &gt;= in_array.GetNumberOfComponents():&#xA;    print(&quot;Output component index out of bounds.&quot;)&#xA;    assert False&#xA;&#xA;num_comp = len(out_idcs)&#xA;&#xA;output = self.GetOutputDataObject(0)&#xA;output.ShallowCopy(in_data)&#xA;&#xA;out_data = vtk.vtkDoubleArray()&#xA;out_data.SetName(output_field)&#xA;out_data.SetNumberOfComponents(num_comp)&#xA;out_data.SetNumberOfTuples(npoints)&#xA;&#xA;out_tup = [0, ] * num_comp&#xA;for i in range(npoints):&#xA;    in_tup = in_array.GetTuple(i)&#xA;    for oti, iti in enumerate(out_idcs):&#xA;        out_tup[oti] = in_tup[iti]&#xA;    out_data.SetTuple(i, out_tup)&#xA;&#xA;output.GetPointData().AddArray(out_data)&#xA;"
+        panel_visibility="advanced">
+        <Hints>
+         <Widget type="multi_line"/>
+       </Hints>
+      <Documentation>This property contains the text of a python program that
+      the programmable source runs.</Documentation>
+      </StringVectorProperty>
+
+
+
+    </SourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
+
