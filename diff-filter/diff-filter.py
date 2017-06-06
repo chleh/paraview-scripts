@@ -117,7 +117,7 @@ def RequestData():
 
         out_data = vtk.vtkDoubleArray()
         out_data.SetName(field_out)
-        out_data.SetNumberOfComponents(1)
+        out_data.SetNumberOfComponents(prop_num_comp)
         out_data.SetNumberOfTuples(num_points)
 
         if num_points == probeFilter.GetValidPoints().GetNumberOfTuples():
