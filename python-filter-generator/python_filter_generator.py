@@ -1,6 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # See blog for details: https://blog.kitware.com/easy-customization-of-the-paraview-python-programmable-filter-property-panel/
 # C. Lehmann: Adapted from https://gitlab.kitware.com/paraview/paraview/snippets/5
+
+from __future__ import print_function
 
 import os
 import sys
@@ -363,7 +365,7 @@ def generatePythonFilterFromFiles(scriptFile, outputFile):
 def main():
 
     if len(sys.argv) != 3:
-        print 'Usage: %s <python input filename> <xml output filename>' % sys.argv[0]
+        print('Usage: %s <python input filename> <xml output filename>' % sys.argv[0])
         sys.exit(1)
 
     inputScript = sys.argv[1]
