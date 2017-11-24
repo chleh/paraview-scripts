@@ -102,16 +102,17 @@ def RequestData():
         return -1
 
     def get_output(probeFilter, source_data, sampling_points, field, field_out):
-        data_pd = source_data.GetPointData()
-        prop_idx = get_property(data_pd, field)
-        assert prop_idx != -1
-
+        # data_pd = source_data.GetPointData()
         probeFilter.SetSourceData(source_data)
         probeFilter.SetInputData(sampling_points)
         probeFilter.Update()
 
-        data1_interpolated = probeFilter.GetOutput()
-        prop_array = data1_interpolated.GetPointData().GetArray(prop_idx)
+        data1_interpolated = probeFilter.GetOutput().GetPointData()
+
+        prop_idx = get_property(data1_interpolated, field)
+        assert prop_idx != -1
+
+        prop_array = data1_interpolated.GetArray(prop_idx)
         prop_num_comp = prop_array.GetNumberOfComponents()
         num_points = probeFilter.GetOutput().GetNumberOfPoints()
 
@@ -122,7 +123,8 @@ def RequestData():
 
         if num_points == probeFilter.GetValidPoints().GetNumberOfTuples():
             for i in range(num_points):
-                out_data.SetTuple(i, i, prop_array)
+                tup = tuple(x for x in prop_array.GetTuple(i))
+                out_data.SetTuple(i, tup)
         else:
             valid_id = 0
             valid_ids = probeFilter.GetValidPoints()
@@ -130,7 +132,8 @@ def RequestData():
             for i in range(num_points):
                 if valid_ids.GetTuple1(valid_id) == i:
                     valid_id += 1
-                    out_data.SetTuple(i, i, prop_array)
+                    tup = tuple(x for x in prop_array.GetTuple(i))
+                    out_data.SetTuple(i, tup)
                 else:
                     out_data.SetTuple(i, NaNs)
 
